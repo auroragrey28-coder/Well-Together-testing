@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WellTogether</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f8f5ed;color:#34483c;font-family:Arial,sans-serif}.wrap{max-width:560px;margin:auto;padding:22px}header{background:#dfe9d8;padding:30px 20px;border-radius:0 0 28px 28px;text-align:center}h1{margin:0;font-size:32px}h2{font-size:22px}.sub{font-size:14px;color:#65786b}.card{background:white;border-radius:20px;padding:20px;margin:16px 0;box-shadow:0 3px 14px #34483c10}button,.btn{display:block;width:100%;border:0;border-radius:13px;padding:15px;margin:10px 0;background:#577c60;color:white;font-size:16px;font-weight:bold;text-align:center;cursor:pointer}.light{background:#e8efe5;color:#34483c}input,textarea{width:100%;padding:13px;margin:8px 0;border:1px solid #c9d7c9;border-radius:12px;font:inherit}input[type=file]{display:none}label{font-size:14px;font-weight:bold}.photos{display:flex;flex-wrap:wrap;gap:8px}.photos img{height:90px;width:90px;object-fit:cover;border-radius:10px}.hidden{display:none}.note{font-size:13px;color:#68796c}.item{padding:12px;border-bottom:1px solid #e5ece5}
+</style>
+</head>
+<body>
+<header><h1>🌿 WellTogether</h1><div>Your goals. Your pace. Your way.</div></header>
+<main class="wrap">
+<div class="card">
+<h2>🍽️ Food & Meal Prep</h2>
+<p class="sub">Start with a photo, or enter your food manually.</p>
+<label class="btn" for="camera">📷 Take a Photo</label>
+<input id="camera" type="file" accept="image/*" capture="environment">
+<label class="btn light" for="gallery">🖼️ Upload Photos</label>
+<input id="gallery" type="file" accept="image/*" multiple>
+<div id="photos" class="photos"></div>
+<button id="analyse">✨ Analyse My Meal</button>
+<p id="message" class="note"></p>
+<button class="light" id="manual">✏️ Enter Manually</button>
+<div id="fields" class="hidden">
+<label>Meal or batch name</label><input id="meal" placeholder="e.g. Pasta and bean salad">
+<label>Ingredients / notes</label><textarea id="ingredients" rows="3" placeholder="What did you use?"></textarea>
+<label>Estimated total calories (optional)</label><input id="calories" type="number" min="0" placeholder="e.g. 2400">
+<label>Number of servings</label><input id="servings" type="number" min="1" value="8">
+<button id="save">Save Batch</button>
+</div>
+</div>
+<div class="card"><h2>🥗 My Saved Batches</h2><div id="saved"></div></div>
+<p class="note">Private test version. Entries are saved in this browser only. AI photo analysis is not connected yet. Do not enter sensitive health information in this public demo.</p>
+</main>
+<script>
+let images=[];
+const $=id=>document.getElementById(id);
+function addPhotos(files){for(const file of files){if(!file.type.startsWith('image/'))continue;const reader=new FileReader();reader.onload=()=>{images.push(reader.result);const img=document.createElement('img');img.src=reader.result;$('photos').appendChild(img)};reader.readAsDataURL(file)}}
+$('camera').onchange=e=>addPhotos(e.target.files);
+$('gallery').onchange=e=>addPhotos(e.target.files);
+$('analyse').onclick=()=>{$('message').textContent='Your photos are ready. Automatic AI analysis is not connected yet. You can enter ingredients and calories manually below.';$('fields').classList.remove('hidden')};
+$('manual').onclick=()=>$('fields').classList.toggle('hidden');
+function getBatches(){try{return JSON.parse(localStorage.getItem('wt_batches')||'[]')}catch(e){return []}}
+function render(){const el=$('saved');el.innerHTML='';const batches=getBatches();if(!batches.length){el.textContent='No batches saved yet.';return}batches.forEach((b,i)=>{const d=document.createElement('div');d.className='item';const title=document.createElement('strong');title.textContent=b.name;d.appendChild(title);const p=document.createElement('p');p.textContent=b.remaining+' of '+b.servings+' servings remaining'+(b.calories?' · '+Math.round(b.calories/b.servings)+' cal/serving':'');d.appendChild(p);const log=document.createElement('button');log.textContent='Log 1 serving';log.onclick=()=>{if(b.remaining<1)return;const all=getBatches();all[i].remaining--;localStorage.setItem('wt_batches',JSON.stringify(all));render()};d.appendChild(log);el.appendChild(d)})}
+$('save').onclick=()=>{const name=$('meal').value.trim();if(!name){alert('Please enter a meal name');return}const servings=Math.max(1,Number($('servings').value)||1);const batches=getBatches();batches.push({name,ingredients:$('ingredients').value,calories:Number($('calories').value)||0,servings,remaining:servings,photoCount:images.length});try{localStorage.setItem('wt_batches',JSON.stringify(batches))}catch(e){alert('Browser storage is full. Please try again.');return}images=[];$('photos').innerHTML='';$('meal').value='';$('ingredients').value='';$('calories').value='';$('fields').classList.add('hidden');$('message').textContent='Batch saved!';render()};
+render();
+</script>
+</body>
+</html>
